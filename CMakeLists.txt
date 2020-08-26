@@ -1,7 +1,5 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(tamagawa_imu_driver)
-
-SET(CMAKE_CXX_FLAGS "-std=c++11 -O2 -g -Wall ${CMAKE_CXX_FLAGS}")
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -21,3 +19,14 @@ target_link_libraries(tag_serial_driver ${catkin_LIBRARIES})
 
 add_executable(tag_can_driver src/tag_can_driver.cpp)
 target_link_libraries(tag_can_driver ${catkin_LIBRARIES})
+
+install(TARGETS
+  tag_serial_driver
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(
+  DIRECTORY
+    launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
