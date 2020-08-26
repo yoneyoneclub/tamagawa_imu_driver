@@ -75,17 +75,8 @@ sensor_msgs::Imu imu_msg;
 int serial_setup(const char * device)
 {
   int fd = open(device, O_RDWR);
-  // fcntl(fd, F_SETFL, 0);
-  // tcgetattr(fd, &conf_tio);
 
   speed_t BAUDRATE = B115200;
-
-  // conf_tio.c_cc[VMIN] = 1;
-  // conf_tio.c_cc[VTIME] = 0;
-
-  // conf_tio.c_iflag = IXON | IXOFF ;
-  // conf_tio.c_cflag = CLOCAL | CREAD | CSIZE | CS8;
-  // conf_tio.c_oflag = ONLCR | OCRNL;
 
   conf_tio.c_cflag += CREAD;   // 受信有効
   conf_tio.c_cflag += CLOCAL;  // ローカルライン（モデム制御なし）
@@ -131,170 +122,6 @@ void shutdown_cmd(int sig)
   ros::shutdown();
 }
 
-// int main(int argc, char** argv)
-// {
-//   ros::init(argc, argv, "tag_serial_driver", ros::init_options::NoSigintHandler);
-//   ros::NodeHandle n;
-//   ros::Publisher pub = n.advertise<sensor_msgs::Imu>("/imu/data_raw", 1000);
-//   ros::Subscriber sub1 = n.subscribe("/tamagawa_imu/receive_ver_req", 10, receive_ver_req);
-//   ros::Subscriber sub2 = n.subscribe("/tamagawa_imu/receive_offset_cancel_req", 10, receive_offset_cancel_req);
-//   ros::Subscriber sub3 = n.subscribe("/tamagawa_imu/receive_heading_reset_req", 10, receive_heading_reset_req);
-
-//   tcgetattr(fd, &old_conf_tio);  // Last setting value retention
-
-//   // Use configured device
-//   if (argc == 4)
-//   {
-//     device = argv[1];
-//     fd = serial_setup(argv[1]);
-//     imu_type = argv[2];
-//     rate = argv[3];
-
-//     if (fd < 0)
-//     {
-//       ROS_ERROR("device not found %s", argv[1]);
-//       ros::shutdown();
-//     }
-
-//     if (imu_type != "withGPS" && imu_type != "noGPS")
-//     {
-//       ROS_ERROR("Must be withGPS or noGPS");
-//       ros::shutdown();
-//     }
-
-//   }
-//   else if (argc == 3)
-//   {
-//     device = argv[1];
-//     fd = serial_setup(argv[1]);
-//     imu_type = argv[2];
-
-//     if (fd < 0)
-//     {
-//       ROS_ERROR("device not found %s", argv[1]);
-//       ros::shutdown();
-//     }
-
-//     if (imu_type != "withGPS" && imu_type != "noGPS")
-//     {
-//       ROS_ERROR("Must be withGPS or noGPS");
-//       ros::shutdown();
-//     }
-//   }
-//   else if (argc == 2)
-//   {
-//     device = argv[1];
-//     fd = serial_setup(argv[1]);
-
-//     if (fd < 0)
-//     {
-//       ROS_ERROR("device not found %s", argv[1]);
-//       ros::shutdown();
-//     }
-//   }
-//   else
-//   {
-//     fd = serial_setup(device.c_str());
-//     if (fd < 0)
-//     {
-//       ROS_ERROR("device not found %s", device.c_str());
-//       ros::shutdown();
-//     }
-//   }
-
-//   ROS_INFO("device=%s imu_type=%s rate=%s", device.c_str(),imu_type.c_str(),rate.c_str());
-
-//   // Data output request to IMU
-//   char bin_req[32];
-//   memset(bin_req, 0x00, sizeof(bin_req));
-//   sprintf(bin_req, "$TSC,BIN,%s\x0d\x0a", rate.c_str());
-//   int bin_req_data = write(fd, bin_req, sizeof(bin_req));
-//   ROS_INFO("request:%s", bin_req);
-
-//   ros::Rate loop_rate(atoi(rate.c_str())*1.5);
-
-//   imu_msg.orientation.x = 0.0;
-//   imu_msg.orientation.y = 0.0;
-//   imu_msg.orientation.z = 0.0;
-//   imu_msg.orientation.w = 1.0;
-
-//   char rbuf[512];
-//   int len;
-//   memset(rbuf, 0x00, sizeof(rbuf));
-
-//   while (ros::ok() && (len = read(fd, rbuf, sizeof(rbuf)) > 0))
-//   {
-
-//     ROS_INFO("%s",rbuf);
-
-//     // if (len > 0)
-//     // {
-//     //     if (rbuf[5] == 'B' && rbuf[6] == 'I' && rbuf[7] == 'N' && rbuf[8] == ',')
-//     //     {
-//     //       imu_msg.header.frame_id = "imu";
-//     //       imu_msg.header.stamp = ros::Time::now();
-
-//     //       if (strcmp(imu_type.c_str(), "noGPS") == 0)
-//     //       {
-//     //         counter = ((rbuf[11] << 24) & 0xFF000000) | ((rbuf[12] << 16) & 0x00FF0000) | ((rbuf[13] << 8) &
-//     0x0000FF00) |
-//     //                   (rbuf[14] & 0x000000FF);
-//     //         raw_data = ((((rbuf[17] << 8) & 0xFFFFFF00) | (rbuf[18] & 0x000000FF)));
-//     //         imu_msg.angular_velocity.x =
-//     //             raw_data * (200 / pow(2, 15)) * M_PI / 180;  // LSB & unit [deg/s] => [rad/s]
-//     //         raw_data = ((((rbuf[19] << 8) & 0xFFFFFF00) | (rbuf[20] & 0x000000FF)));
-//     //         imu_msg.angular_velocity.y =
-//     //             raw_data * (200 / pow(2, 15)) * M_PI / 180;  // LSB & unit [deg/s] => [rad/s]
-//     //         raw_data = ((((rbuf[21] << 8) & 0xFFFFFF00) | (rbuf[22] & 0x000000FF)));
-//     //         imu_msg.angular_velocity.z =
-//     //             raw_data * (200 / pow(2, 15)) * M_PI / 180;  // LSB & unit [deg/s] => [rad/s]
-//     //         raw_data = ((((rbuf[23] << 8) & 0xFFFFFF00) | (rbuf[24] & 0x000000FF)));
-//     //         imu_msg.linear_acceleration.x = raw_data * (100 / pow(2, 15));  // LSB & unit [m/s^2]
-//     //         raw_data = ((((rbuf[25] << 8) & 0xFFFFFF00) | (rbuf[26] & 0x000000FF)));
-//     //         imu_msg.linear_acceleration.y = raw_data * (100 / pow(2, 15));  // LSB & unit [m/s^2]
-//     //         raw_data = ((((rbuf[27] << 8) & 0xFFFFFF00) | (rbuf[28] & 0x000000FF)));
-//     //         imu_msg.linear_acceleration.z = raw_data * (100 / pow(2, 15));  // LSB & unit [m/s^2]
-
-//     //         pub.publish(imu_msg);
-//     //       }
-//     //       else if (strcmp(imu_type.c_str(), "withGPS") == 0)
-//     //       {
-//     //         counter = ((rbuf[11] << 8) & 0x0000FF00) | (rbuf[12] & 0x000000FF);
-//     //         raw_data = ((((rbuf[15] << 8) & 0xFFFFFF00) | (rbuf[16] & 0x000000FF)));
-//     //         imu_msg.angular_velocity.x =
-//     //             raw_data * (200 / pow(2, 15)) * M_PI / 180;  // LSB & unit [deg/s] => [rad/s]
-//     //         raw_data = ((((rbuf[17] << 8) & 0xFFFFFF00) | (rbuf[18] & 0x000000FF)));
-//     //         imu_msg.angular_velocity.y =
-//     //             raw_data * (200 / pow(2, 15)) * M_PI / 180;  // LSB & unit [deg/s] => [rad/s]
-//     //         raw_data = ((((rbuf[19] << 8) & 0xFFFFFF00) | (rbuf[20] & 0x000000FF)));
-//     //         imu_msg.angular_velocity.z =
-//     //             raw_data * (200 / pow(2, 15)) * M_PI / 180;  // LSB & unit [deg/s] => [rad/s]
-//     //         raw_data = ((((rbuf[21] << 8) & 0xFFFFFF00) | (rbuf[22] & 0x000000FF)));
-//     //         imu_msg.linear_acceleration.x = raw_data * (100 / pow(2, 15));  // LSB & unit [m/s^2]
-//     //         raw_data = ((((rbuf[23] << 8) & 0xFFFFFF00) | (rbuf[24] & 0x000000FF)));
-//     //         imu_msg.linear_acceleration.y = raw_data * (100 / pow(2, 15));  // LSB & unit [m/s^2]
-//     //         raw_data = ((((rbuf[25] << 8) & 0xFFFFFF00) | (rbuf[26] & 0x000000FF)));
-//     //         imu_msg.linear_acceleration.z = raw_data * (100 / pow(2, 15));  // LSB & unit [m/s^2]
-
-//     //         pub.publish(imu_msg);
-//     //       }
-
-//     //       ROS_INFO("counter: %d", counter);
-
-//     //     }
-//     //     else if (rbuf[5] == 'V' && rbuf[6] == 'E' && rbuf[7] == 'R' && rbuf[8] == ',')
-//     //     {
-//     //       ROS_INFO("%s", rbuf);
-//     //     }
-//     // }
-//     memset(rbuf, 0x00, sizeof(rbuf));
-//     signal(SIGINT, shutdown_cmd);
-//     ros::spinOnce();
-//     loop_rate.sleep();
-//   }
-
-//   return 0;
-// }
 #include <boost/asio.hpp>
 using namespace boost::asio;
 
@@ -335,7 +162,6 @@ int main(int argc, char ** argv)
 
   while (ros::ok()) {
     ros::spinOnce();
-    // loop_rate.sleep();
 
     boost::asio::streambuf response;
     boost::asio::read_until(serial_port, response, "\n");
@@ -344,7 +170,6 @@ int main(int argc, char ** argv)
 
     length = rbuf.size();
     size_t len = response.size();
-    // std::cout << rbuf  << "    " << length <<  " " << len << std::endl;
 
     if (length > 0) {
       if (rbuf[5] == 'B' && rbuf[6] == 'I' && rbuf[7] == 'N' && rbuf[8] == ',' && length == 58) {
@@ -371,7 +196,7 @@ int main(int argc, char ** argv)
         pub.publish(imu_msg);
 
       } else if (rbuf[5] == 'V' && rbuf[6] == 'E' && rbuf[7] == 'R' && rbuf[8] == ',') {
-        // ROS_INFO("%s", rbuf.c_str());
+        ROS_DEBUG("%s", rbuf.c_str());
       }
     }
   }
