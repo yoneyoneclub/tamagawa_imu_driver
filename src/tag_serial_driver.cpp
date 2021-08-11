@@ -95,7 +95,7 @@ int serial_setup(const char * device)
 void receive_ver_req(const std_msgs::msg::Int32::ConstSharedPtr msg)
 {
   char ver_req[] = "$TSC,VER*29\x0d\x0a";
-  int ver_req_data = write(fd, ver_req, sizeof(ver_req));
+  write(fd, ver_req, sizeof(ver_req));
   RCLCPP_INFO(rclcpp::get_logger("tag_serial_driver"), "Send Version Request:%s", ver_req);
 }
 
@@ -103,14 +103,14 @@ void receive_offset_cancel_req(const std_msgs::msg::Int32::ConstSharedPtr msg)
 {
   char offset_cancel_req[32];
   sprintf(offset_cancel_req, "$TSC,OFC,%d\x0d\x0a", msg->data);
-  int offset_cancel_req_data = write(fd, offset_cancel_req, sizeof(offset_cancel_req));
+  write(fd, offset_cancel_req, sizeof(offset_cancel_req));
   RCLCPP_INFO(rclcpp::get_logger("tag_serial_driver"), "Send Offset Cancel Request:%s", offset_cancel_req);
 }
 
 void receive_heading_reset_req(const std_msgs::msg::Int32::ConstSharedPtr msg)
 {
   char heading_reset_req[] = "$TSC,HRST*29\x0d\x0a";
-  int heading_reset_req_data = write(fd, heading_reset_req, sizeof(heading_reset_req));
+  write(fd, heading_reset_req, sizeof(heading_reset_req));
   RCLCPP_INFO(rclcpp::get_logger("tag_serial_driver"), "Send Heading reset Request:%s", heading_reset_req);
 }
 
@@ -135,7 +135,7 @@ int main(int argc, char ** argv)
   rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr sub1 = node->create_subscription<std_msgs::msg::Int32>("receive_ver_req", 10, receive_ver_req);
   rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr sub2 = node->create_subscription<std_msgs::msg::Int32>("receive_offset_cancel_req", 10, receive_offset_cancel_req);
   rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr sub3 = node->create_subscription<std_msgs::msg::Int32>("receive_heading_reset_req", 10, receive_heading_reset_req);
-  
+
   std::string imu_frame_id = node->declare_parameter<std::string>("imu_frame_id", "imu");
 
   std::string port = node->declare_parameter<std::string>("port", "/dev/ttyUSB0");
@@ -168,7 +168,6 @@ int main(int argc, char ** argv)
       boost::asio::buffers_begin(response.data()), boost::asio::buffers_end(response.data()));
 
     length = rbuf.size();
-    size_t len = response.size();
 
     if (length > 0) {
       if (rbuf[5] == 'B' && rbuf[6] == 'I' && rbuf[7] == 'N' && rbuf[8] == ',' && length == 58) {
