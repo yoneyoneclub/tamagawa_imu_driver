@@ -61,7 +61,7 @@
 
 std::string device = "/dev/ttyUSB0";
 std::string imu_type = "noGPS";
-std::string rate = "50";
+std::string rate = "30";
 
 struct termios old_conf_tio;
 struct termios conf_tio;
@@ -170,18 +170,38 @@ int main(int argc, char ** argv)
   imu_msg.orientation.z = 0.0;
   imu_msg.orientation.w = 1.0;
 
+  std::string rest = "";
+
   while (rclcpp::ok()) {
     rclcpp::spin_some(node);
 
-    boost::asio::streambuf response;
-    boost::asio::read_until(serial_port, response, "\n");
-    std::string rbuf(
-      boost::asio::buffers_begin(response.data()), boost::asio::buffers_end(response.data()));
+    std::string rbuf = rest;
+    rest = "";
+
+    if ( rbuf.size() < 58 ) {
+      boost::asio::streambuf response;
+      boost::asio::read_until(serial_port, response, "\n");
+      std::string rbuf_(
+        boost::asio::buffers_begin(response.data()), boost::asio::buffers_end(response.data()));
+
+      rbuf += rbuf_;
+    }
 
     length = rbuf.size();
 
     if (length > 0) {
-      if (rbuf[5] == 'B' && rbuf[6] == 'I' && rbuf[7] == 'N' && rbuf[8] == ',' && length == 58) {
+      if (rbuf[5] == 'B' && rbuf[6] == 'I' && rbuf[7] == 'N' && rbuf[8] == ',') {
+
+        if (length < 58 ) {
+          rest = rbuf;
+          continue;
+        }
+
+        if (length > 58 ) {
+          rest = rbuf.substr( 58, length - 58 );
+          rbuf = rbuf.substr( 0, 58 );
+        }
+
         imu_msg.header.frame_id = imu_frame_id;
         imu_msg.header.stamp = node->now();
 
@@ -206,6 +226,8 @@ int main(int argc, char ** argv)
 
       } else if (rbuf[5] == 'V' && rbuf[6] == 'E' && rbuf[7] == 'R' && rbuf[8] == ',') {
         RCLCPP_DEBUG(rclcpp::get_logger("tag_serial_driver"), "%s", rbuf.c_str());
+      } else {
+        rest = "";
       }
     }
   }
